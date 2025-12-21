@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "MyTasbihPro",
+    "slug": "mytasbihpro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.iliyas_bohari.snack6de32a47009d4c568bd20e897e3974e9"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "description": "Digital tasbih with daily tracking — MyTasbihPro",
+    "extra": {
+      "eas": {
+        "projectId": "6dfb347e-37c9-4abe-b178-0523d1d9e6d1"
+      }
+    }
+  }
+}
