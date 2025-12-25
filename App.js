@@ -13,13 +13,20 @@ import {
   Alert,
   Modal,
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  Switch // <--- Added Switch for the toggle
 } from 'react-native';
 import { LineChart, PieChart } from "react-native-chart-kit";
 import { Ionicons } from '@expo/vector-icons'; 
 import * as FileSystem from 'expo-file-system/legacy'; 
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// --- ADMOB IMPORTS ---
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
+// Use TestIds.BANNER for testing. Replace with your real ID from AdMob later.
+const adUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-7573296194271277/2017801356';
 
 // --- Constants ---
 const { width, height } = Dimensions.get('window');
@@ -30,6 +37,73 @@ const PIE_COLORS = [
   '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
   '#C9CBCF', '#E7E9ED', '#76A346', '#D84315'
 ];
+
+// --- BOHRA CALENDAR HELPER ---
+const getBohraDate = (dateObj) => {
+  const wdNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const iMonthNames = [
+    "Muharram", "Safar", "Rabi al-Awwal", "Rabi al-Thani",
+    "Jumada al-Ula", "Jumada al-Thani", "Rajab", "Shaban",
+    "Ramadan", "Shawwal", "Dhu al-Qadah", "Dhu al-Hijjah"
+  ];
+
+  let day = dateObj.getDate();
+  let month = dateObj.getMonth();
+  let year = dateObj.getFullYear();
+
+  let m = month + 1;
+  let y = year;
+  if (m < 3) {
+    y -= 1;
+    m += 12;
+  }
+
+  let a = Math.floor(y / 100);
+  let b = 2 - a + Math.floor(a / 4);
+  if (y < 1583) b = 0;
+  if (y === 1582) {
+    if (m > 10) b = -10;
+    if (m === 10) {
+      b = 0;
+      if (day > 4) b = -10;
+    }
+  }
+
+  let jd = Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + day + b - 1524;
+
+  b = 0;
+  if (jd > 2299160) {
+    a = Math.floor((jd - 1867216.25) / 36524.25);
+    b = 1 + a - Math.floor(a / 4);
+  }
+  let bb = jd + b + 1524;
+  let cc = Math.floor((bb - 122.1) / 365.25);
+  let dd = Math.floor(365.25 * cc);
+  let ee = Math.floor((bb - dd) / 30.6001);
+  day = (bb - dd) - Math.floor(30.6001 * ee);
+  month = ee - 1;
+  if (ee > 13) {
+    cc += 1;
+    month = ee - 13;
+  }
+  year = cc - 4716;
+
+  let iYear = 10631.0 / 30.0;
+  let epochAstro = 1948084;
+  let shift1 = 8.01 / 60.0;
+
+  let z = jd - epochAstro;
+  let cyc = Math.floor(z / 10631.0);
+  z = z - 10631.0 * cyc;
+  let j = Math.floor((z - shift1) / iYear);
+  let iy = 30 * cyc + j;
+  z = z - Math.floor(j * iYear + shift1);
+  let im = Math.floor((z + 28.5001) / 29.5);
+  if (im === 13) im = 12;
+  let id = z - Math.floor(29.5001 * im - 29.0);
+
+  return `${id} ${iMonthNames[im - 1]} ${iy} H`;
+};
 
 // --- DAILY PRESETS DATA ---
 const DAILY_PRESETS = [
@@ -54,6 +128,8 @@ const THEMES = {
   rose:   { name: 'Hot Rose',   bg: '#1A0006', card: '#2E000F', accent: '#FF006E', text: '#FFE6F0', danger: '#FF453A', accentDim: 'rgba(255, 0, 110, 0.1)', status: 'light-content' },
   light:  { name: 'Day Mode',   bg: '#F2F2F7', card: '#FFFFFF', accent: '#000000', text: '#000000', danger: '#FF3B30', accentDim: 'rgba(0, 0, 0, 0.1)', status: 'dark-content' },
   amoled: { name: 'AMOLED',     bg: '#000000', card: '#121212', accent: '#FFFFFF', text: '#FFFFFF', danger: '#FF453A', accentDim: 'rgba(255, 255, 255, 0.1)', status: 'light-content' },
+  ramzan: { name: 'Ramadan Special', bg: '#00261C', card: '#004d3d', accent: '#FFD700', text: '#F8F8F8', danger: '#FF453A', accentDim: 'rgba(255, 215, 0, 0.15)', status: 'light-content' },
+  ashara: { name: 'Ashara Special', bg: '#1F0000', card: '#380000', accent: '#FFFFFF', text: '#FFFFFF', danger: '#FF453A', accentDim: 'rgba(255, 255, 255, 0.2)', status: 'light-content' },
 };
 
 export default function App() {
@@ -63,13 +139,17 @@ export default function App() {
   const [tasbihName, setTasbihName] = useState(""); 
   const [dailyTotals, setDailyTotals] = useState({});
   const [currentTheme, setCurrentTheme] = useState('neon'); 
+  const [isVibrationEnabled, setVibrationEnabled] = useState(true); // <--- NEW STATE
   
   const [menuVisible, setMenuVisible] = useState(false);
   const [analysisVisible, setAnalysisVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [dailyModalVisible, setDailyModalVisible] = useState(false);
+  const [calendarVisible, setCalendarVisible] = useState(false);
+  const [calDate, setCalDate] = useState(new Date());
 
   const colors = THEMES[currentTheme];
+  const bohraDateToday = getBohraDate(new Date());
 
   const STORAGE_KEYS = {
     COUNT: '@tasbih_count',
@@ -78,14 +158,14 @@ export default function App() {
     NAME: '@tasbih_name',
     DAILY: '@tasbih_daily_totals',
     LAST_OPENED: '@tasbih_last_opened',
-    THEME: '@tasbih_theme'
+    THEME: '@tasbih_theme',
+    VIBRATION: '@tasbih_vibration' // <--- NEW KEY
   };
 
-  // --- Logic ---
   useEffect(() => {
     const loadState = async () => {
       try {
-        const [savedCount, savedTarget, savedHistory, savedName, savedDaily, savedLastOpened, savedTheme] = await Promise.all([
+        const [savedCount, savedTarget, savedHistory, savedName, savedDaily, savedLastOpened, savedTheme, savedVib] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.COUNT),
           AsyncStorage.getItem(STORAGE_KEYS.TARGET),
           AsyncStorage.getItem(STORAGE_KEYS.HISTORY),
@@ -93,6 +173,7 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.DAILY),
           AsyncStorage.getItem(STORAGE_KEYS.LAST_OPENED),
           AsyncStorage.getItem(STORAGE_KEYS.THEME),
+          AsyncStorage.getItem(STORAGE_KEYS.VIBRATION),
         ]);
 
         if (savedCount != null) setCount(parseInt(savedCount, 10));
@@ -101,6 +182,7 @@ export default function App() {
         if (savedName) setTasbihName(savedName);
         if (savedDaily) setDailyTotals(JSON.parse(savedDaily));
         if (savedTheme && THEMES[savedTheme]) setCurrentTheme(savedTheme);
+        if (savedVib != null) setVibrationEnabled(savedVib === 'true'); // <--- LOAD VIBRATION
         
         if (savedLastOpened) {
           const todayKey = (new Date()).toISOString().slice(0,10);
@@ -116,11 +198,20 @@ export default function App() {
   useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history)).catch(() => {}); }, [history]);
   useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.DAILY, JSON.stringify(dailyTotals)).catch(() => {}); }, [dailyTotals]);
   useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.THEME, currentTheme).catch(() => {}); }, [currentTheme]);
+  useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.VIBRATION, String(isVibrationEnabled)).catch(() => {}); }, [isVibrationEnabled]); // <--- SAVE VIBRATION
+
   useEffect(() => { 
     AsyncStorage.setItem(STORAGE_KEYS.NAME, tasbihName).catch(() => {}); 
     const todayKey = (new Date()).toISOString().slice(0,10);
     AsyncStorage.setItem(STORAGE_KEYS.LAST_OPENED, todayKey).catch(() => {});
   }, [tasbihName]);
+
+  // --- Helper for safe vibration ---
+  const vibrateSafe = (pattern) => {
+    if (isVibrationEnabled) {
+      Vibration.vibrate(pattern);
+    }
+  };
 
   const handleCount = () => { 
     const newCount = count + 1;
@@ -129,10 +220,10 @@ export default function App() {
     // Check Target
     const targetNum = parseInt(target);
     if (targetNum && newCount === targetNum) {
-      Vibration.vibrate([0, 500, 200, 500]); 
+      vibrateSafe([0, 500, 200, 500]); 
       Alert.alert("Target Reached!", `You have completed ${targetNum} counts.`);
     } else {
-      Vibration.vibrate(50); 
+      vibrateSafe(50); 
     }
   };
 
@@ -144,7 +235,7 @@ export default function App() {
       addToToday(count);
     }
     setCount(0);
-    Vibration.vibrate(100);
+    vibrateSafe(100);
   };
 
   const addToToday = (amount) => {
@@ -165,27 +256,18 @@ export default function App() {
         Alert.alert('Export', 'No history data to export'); 
         return; 
       }
-
       const lines = ['Tasbih Name,Date,Count'];
-
       history.forEach(item => {
         const safeName = item.name ? item.name.replace(/,/g, '') : 'Untitled'; 
         lines.push(`${safeName},${item.date},${item.count}`);
       });
-
       const csv = lines.join('\n');
       const filename = `tasbih_history_${(new Date()).toISOString().slice(0,10)}.csv`;
       const fileUri = FileSystem.documentDirectory + filename;
-      
       await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: 'utf8' });
-      
       const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(fileUri, { dialogTitle: 'Share History CSV' });
-      }
-    } catch (e) {
-      Alert.alert('Export failed', String(e));
-    }
+      if (canShare) { await Sharing.shareAsync(fileUri, { dialogTitle: 'Share History CSV' }); }
+    } catch (e) { Alert.alert('Export failed', String(e)); }
   };
 
   const applyPreset = (preset) => {
@@ -193,7 +275,7 @@ export default function App() {
     setTarget(String(preset.target));
     setCount(0);
     setDailyModalVisible(false);
-    Vibration.vibrate(50);
+    vibrateSafe(50);
   };
 
   // --- Graph Helpers ---
@@ -231,27 +313,26 @@ export default function App() {
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
         <View style={[styles.menuContainer, { backgroundColor: colors.card, borderColor: colors.accent, shadowColor: colors.text }]}>
           <Text style={[styles.menuTitle, { color: colors.text }]}>MENU</Text>
-          
           <TouchableOpacity style={[styles.menuItem, { borderBottomColor: currentTheme === 'light' ? '#eee' : '#333' }]} onPress={() => { setMenuVisible(false); setDailyModalVisible(true); }}>
             <Ionicons name="list" size={24} color={colors.accent} />
             <Text style={[styles.menuText, { color: colors.text }]}>Daily Tasbih Presets</Text>
           </TouchableOpacity>
-
+          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: currentTheme === 'light' ? '#eee' : '#333' }]} onPress={() => { setMenuVisible(false); setCalendarVisible(true); }}>
+            <Ionicons name="calendar" size={24} color={colors.accent} />
+            <Text style={[styles.menuText, { color: colors.text }]}>Calendar</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.menuItem, { borderBottomColor: currentTheme === 'light' ? '#eee' : '#333' }]} onPress={() => { setMenuVisible(false); setAnalysisVisible(true); }}>
             <Ionicons name="stats-chart" size={24} color={colors.accent} />
             <Text style={[styles.menuText, { color: colors.text }]}>Analytics & Graphs</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={[styles.menuItem, { borderBottomColor: currentTheme === 'light' ? '#eee' : '#333' }]} onPress={() => { setMenuVisible(false); setSettingsVisible(true); }}>
             <Ionicons name="settings-sharp" size={24} color={colors.accent} />
             <Text style={[styles.menuText, { color: colors.text }]}>Settings & Themes</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={[styles.menuItem, { borderBottomColor: currentTheme === 'light' ? '#eee' : '#333' }]} onPress={() => { setMenuVisible(false); exportCSV(); }}>
             <Ionicons name="share-social" size={24} color={colors.accent} />
             <Text style={[styles.menuText, { color: colors.text }]}>Export Data (CSV)</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => setMenuVisible(false)}>
             <Ionicons name="close-circle" size={24} color={colors.danger} />
             <Text style={[styles.menuText, { color: colors.danger }]}>Close</Text>
@@ -274,7 +355,6 @@ export default function App() {
           <Text style={{ color: currentTheme === 'light' ? '#666' : '#AAA', marginBottom: 20, textAlign: 'center' }}>
             Select a tasbih to automatically set the name and target.
           </Text>
-          
           {DAILY_PRESETS.map((preset, index) => (
              <TouchableOpacity 
                key={index} 
@@ -293,6 +373,96 @@ export default function App() {
     </Modal>
   );
 
+  const CalendarModal = () => {
+    const year = calDate.getFullYear();
+    const month = calDate.getMonth();
+    const changeMonth = (increment) => setCalDate(new Date(year, month + increment, 1));
+
+    const renderCalendarGrid = () => {
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDayIndex = new Date(year, month, 1).getDay(); 
+      const days = [];
+      const todayStr = new Date().toISOString().slice(0, 10);
+
+      for (let i = 0; i < firstDayIndex; i++) {
+        days.push(<View key={`empty-${i}`} style={styles.calDayCell} />);
+      }
+
+      for (let i = 1; i <= daysInMonth; i++) {
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        const countForDay = dailyTotals[dateKey] || 0;
+        const isToday = dateKey === todayStr;
+
+        const thisDayObj = new Date(year, month, i);
+        const bohraDateForGrid = getBohraDate(thisDayObj);
+
+        const handleDayPress = () => {
+          const dayRecords = history.filter(h => h.date === dateKey);
+          let message = `Misri Date: ${bohraDateForGrid}\n\n`;
+          
+          if (dayRecords.length > 0) {
+             const details = dayRecords.map(r => `• ${r.name || 'Untitled'}: ${r.count}`).join('\n');
+             message += `Total Count: ${countForDay}\n\n${details}`;
+          } else {
+             message += "No dhikr recorded on this day.";
+          }
+          Alert.alert(`History for ${dateKey}`, message);
+        };
+
+        days.push(
+          <TouchableOpacity 
+            key={dateKey} 
+            style={[
+              styles.calDayCell, 
+              isToday && { backgroundColor: colors.accentDim, borderColor: colors.accent, borderWidth: 1 }
+            ]}
+            onPress={handleDayPress}
+          >
+            <Text style={{ color: isToday ? colors.accent : colors.text, fontWeight: isToday ? 'bold' : 'normal' }}>{i}</Text>
+            {countForDay > 0 && (
+              <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.accent, marginTop: 4 }} />
+            )}
+          </TouchableOpacity>
+        );
+      }
+      return days;
+    };
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    return (
+      <Modal animationType="slide" visible={calendarVisible} onRequestClose={() => setCalendarVisible(false)}>
+        <View style={[styles.fullScreenModal, { backgroundColor: colors.bg }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Calendar</Text>
+            <TouchableOpacity onPress={() => setCalendarVisible(false)} style={styles.closeBtn}>
+              <Ionicons name="close" size={30} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 20, alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 20 }}>
+              <TouchableOpacity onPress={() => changeMonth(-1)} style={{ padding: 10 }}>
+                <Ionicons name="chevron-back" size={24} color={colors.accent} />
+              </TouchableOpacity>
+              <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold' }}>{monthNames[month]} {year}</Text>
+              <TouchableOpacity onPress={() => changeMonth(1)} style={{ padding: 10 }}>
+                <Ionicons name="chevron-forward" size={24} color={colors.accent} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', width: '100%', marginBottom: 10 }}>
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                <Text key={i} style={{ width: '14.28%', textAlign: 'center', color: '#666', fontWeight: 'bold' }}>{d}</Text>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%' }}>
+              {renderCalendarGrid()}
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+    );
+  };
+  
   const AnalysisModal = () => (
     <Modal animationType="slide" visible={analysisVisible} onRequestClose={() => setAnalysisVisible(false)}>
       <View style={[styles.fullScreenModal, { backgroundColor: colors.bg }]}>
@@ -354,7 +524,24 @@ export default function App() {
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text style={[styles.settingHeader, { color: colors.accent }]}>APPEARANCE</Text>
+          
+          {/* --- NEW PREFERENCES SECTION FOR VIBRATION --- */}
+          <Text style={[styles.settingHeader, { color: colors.accent }]}>PREFERENCES</Text>
+          <View style={[styles.settingRow, { backgroundColor: colors.card }]}>
+             <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <Ionicons name="phone-portrait-outline" size={20} color={colors.text} style={{marginRight: 10}} />
+                <Text style={{ color: colors.text, fontSize: 16 }}>Haptic Vibration</Text>
+             </View>
+             <Switch
+                trackColor={{ false: "#767577", true: colors.accent }}
+                thumbColor={isVibrationEnabled ? "#f4f3f4" : "#f4f3f4"}
+                ios_backgroundColor="#3e3e3e"
+                onValueChange={setVibrationEnabled}
+                value={isVibrationEnabled}
+             />
+          </View>
+
+          <Text style={[styles.settingHeader, { color: colors.accent, marginTop: 10 }]}>APPEARANCE</Text>
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <Text style={{ color: colors.text, marginBottom: 15 }}>Select Theme</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -383,8 +570,20 @@ export default function App() {
              <Text style={{ color: colors.danger, fontSize: 16 }}>Clear All History</Text>
              <Ionicons name="trash-outline" size={20} color={colors.danger} />
           </TouchableOpacity>
-          <View style={{ marginTop: 40, alignItems: 'center' }}>
-            <Text style={{ color: currentTheme === 'light' ? '#666' : '#666' }}>My Tasbih Pro v1.6</Text>
+
+          <View style={{ marginTop: 20, marginBottom: 40, alignItems: 'center', width: '100%' }}>
+            {/* Banner Ad placed here at the bottom of Settings */}
+            <BannerAd
+              unitId={adUnitId}
+              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+              requestOptions={{
+                requestNonPersonalizedAdsOnly: true,
+              }}
+            />
+          </View>
+
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ color: currentTheme === 'light' ? '#666' : '#666' }}>My Tasbih Pro v1.8</Text>
             <Text style={{ color: '#888', fontSize: 12 }}>Design by Iliyas Abbasali Bohari</Text>
           </View>
         </ScrollView>
@@ -399,6 +598,7 @@ export default function App() {
         
         <MenuModal />
         <DailyTasbihModal />
+        <CalendarModal />
         <AnalysisModal />
         <SettingsModal />
 
@@ -410,11 +610,20 @@ export default function App() {
         >
           
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => setMenuVisible(true)} style={[styles.iconBtn, { backgroundColor: colors.card }]}>
-              <Ionicons name="menu" size={24} color={colors.text} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>DIGITAL TASBIH</Text>
-            <View style={{ width: 40 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+               <TouchableOpacity onPress={() => setMenuVisible(true)} style={[styles.iconBtn, { backgroundColor: colors.card }]}>
+                  <Ionicons name="menu" size={24} color={colors.text} />
+               </TouchableOpacity>
+            </View>
+            
+            <View style={{ alignItems: 'center' }}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>DIGITAL TASBIH</Text>
+              <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '600', marginTop: 4 }}>
+                 {bohraDateToday}
+              </Text>
+            </View>
+
+            <View style={{ width: 44 }} /> 
           </View>
 
           {/* Combined Input Card */}
@@ -482,28 +691,6 @@ export default function App() {
              </ScrollView>
           </View>
 
-          {/*<View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: currentTheme === 'light' ? '#666' : '#888' }]}>Recent History</Text>
-            <View style={[styles.cardNoPadding, { backgroundColor: colors.card }]}>
-              {history.length === 0 ? <Text style={styles.emptyText}>No records yet.</Text> : 
-                history.slice(0, 5).map((item, index) => (
-                  <View key={index} style={[styles.historyItem, { borderBottomColor: currentTheme === 'light' ? '#eee' : '#333' }]}>
-                    <View style={styles.historyLeft}>
-                      <Text style={[styles.historyLabel, { color: colors.text }]}>{item.name}</Text>
-                      <Text style={styles.historyDate}>{item.date}</Text>
-                    </View>
-                    <Text style={[styles.historyValue, { color: colors.accent }]}>{item.count}</Text>
-                  </View>
-                ))
-              }
-              {history.length > 5 && (
-                <TouchableOpacity onPress={() => setMenuVisible(true)}>
-                  <Text style={{ color: currentTheme === 'light' ? '#666' : '#888', textAlign: 'center', padding: 15, fontSize: 12 }}>View all in Menu</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>*/}
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -513,11 +700,9 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1 },
-  // FIXED: No flexGrow, added small padding to prevent excess bouncing
   scrollContent: { flexGrow: 0, paddingBottom: 20, alignItems: 'center' },
-  // FIXED: Reduced marginTop for less gap
   header: { width: CARD_WIDTH, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 40, marginBottom: 10 },
-  headerTitle: { fontSize: 20, fontWeight: '800', letterSpacing: 3 },
+  headerTitle: { fontSize: 20, fontWeight: '800', letterSpacing: 2 },
   iconBtn: { padding: 10, borderRadius: 12 },
   card: { width: CARD_WIDTH, borderRadius: 20, padding: 15, marginBottom: 15 },
   cardNoPadding: { width: CARD_WIDTH, borderRadius: 20, marginBottom: 15, overflow: 'hidden' },
@@ -531,6 +716,14 @@ const styles = StyleSheet.create({
   resetButton: { marginTop: 20, paddingVertical: 12, paddingHorizontal: 25, borderRadius: 30 },
   resetText: { fontWeight: '700', fontSize: 13, letterSpacing: 1 },
   sectionContainer: { marginBottom: 20, alignItems: 'center' },
+  calDayCell: {
+    width: '14.28%', // 100% divided by 7 days
+    aspectRatio: 1,  // Makes it a perfect square
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
+    borderRadius: 8,
+  },
   sectionTitle: { width: CARD_WIDTH, fontSize: 14, fontWeight: '700', marginBottom: 10, textTransform: 'uppercase' },
   calendarScroll: { paddingHorizontal: (width - CARD_WIDTH) / 2, paddingRight: 20 },
   dayBox: { width: (width / 7) - 10, height: 60, borderRadius: 12, marginRight: 8, justifyContent: 'center', alignItems: 'center' },

@@ -1,0 +1,9 @@
+# Ignore the builds folder
+builds/
+.expo/
+node_modules/
+.git/
+
+# Ignore any random APK or AAB files
+*.apk
+*.aab
