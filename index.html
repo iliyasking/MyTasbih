@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyTasbihPro - Digital Spiritual Companion</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-gold: #FFD700;
+            --dark-bg: #0F0F0F;
+            --card-bg: #1E1E1E;
+            --text-light: #F8F8F8;
+        }
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background-color: rgba(15, 15, 15, 0.95);
+            border-bottom: 1px solid #333;
+        }
+        .navbar-brand {
+            color: var(--primary-gold) !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            padding: 80px 0;
+            display: flex;
+            align-items: center;
+        }
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .text-gold { color: var(--primary-gold); }
+        
+        .btn-download {
+            background-color: var(--primary-gold);
+            color: #000;
+            font-weight: bold;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+            border: none;
+        }
+        .btn-download:hover {
+            transform: scale(1.05);
+            background-color: #e6c200;
+            color: #000;
+        }
+
+        /* CSS Phone Mockup */
+        .phone-mockup {
+            border: 12px solid #333;
+            border-radius: 40px;
+            height: 600px;
+            width: 300px;
+            margin: auto;
+            position: relative;
+            background-color: #001219; /* Ocean Theme BG */
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.1);
+        }
+        .phone-screen {
+            padding: 20px;
+            text-align: center;
+            color: #fff;
+            padding-top: 50px;
+        }
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 25px;
+            background-color: #333;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+        .tasbih-circle {
+            width: 200px;
+            height: 200px;
+            border: 8px solid var(--primary-gold);
+            border-radius: 50%;
+            margin: 60px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4rem;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Features */
+        .feature-card {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 20px;
+            padding: 30px;
+            height: 100%;
+            transition: transform 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-gold);
+        }
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--primary-gold);
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid #333;
+            padding: 40px 0;
+            margin-top: 80px;
+            text-align: center;
+            color: #888;
+        }
+        a { color: var(--primary-gold); text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fa-solid fa-kaaba me-2"></i> MyTasbihPro</a>
+            <a href="#download" class="btn btn-outline-light rounded-pill px-4 btn-sm">Download v1.0</a>
+            <a href="https://github.com/iliyasking/MyTasbih/releases/download/v1.0/MyTasbihPro.apk" id="downloadBtn" class="btn btn-download shadow">
+                <i class="fa-brands fa-android me-2"></i> Download APK
+            </a>
+        </div>
+    </nav>
+
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-5 mb-lg-0">
+                    <h1 class="hero-title">Elevate Your <br><span class="text-gold">Spiritual Journey</span></h1>
+                    <p class="lead my-4 text-secondary">
+                        The most advanced digital counter for the Dawoodi Bohra community. 
+                        Featuring Misri Calendar, Haptic Feedback, and Beautiful Analytics.
+                    </p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                        <a href="https://github.com/iliyasking/MyTasbih/releases/download/v1.0/MyTasbihPro.apk" class="btn btn-download shadow">
+                            <i class="fa-brands fa-android me-2"></i> Download APK
+                        </a>
+                    </div>
+                    <p class="mt-3 text-muted small"><i class="fa-solid fa-shield-halved me-1"></i> Safe, Private & Ad-Free</p>
+                </div>
+                
+                <div class="col-lg-6 text-center">
+                    <div class="phone-mockup text-center" style="padding: 10px; background: #000;">
+                        <img src="images/home_screen.png" alt="App Home Screen" class="img-fluid" style="border-radius: 25px; height: 100%; object-fit: contain;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="py-5" style="background-color: #151515;">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">A Look Inside the App</h2>
+                <p class="text-secondary">Clean design with powerful features.</p>
+            </div>
+            
+            <div class="row g-4 justify-content-center font-monospace">
+                <div class="col-lg-3 col-md-4 col-6">
+                    <img src="images/history_screen.png" alt="History Screen" class="img-fluid rounded-4 shadow border border-secondary">
+                </div>
+
+                <div class="col-lg-3 col-md-4 col-6">
+                    <img src="images/settings_screen.png" alt="Settings Screen" class="img-fluid rounded-4 shadow border border-secondary">
+                </div>
+                
+                <div class="col-lg-3 col-md-4 col-6">
+                    <img src="images/home_screen.png" alt="Another Screen" class="img-fluid rounded-4 shadow border border-secondary">
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="container py-5">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fa-solid fa-calendar-days feature-icon"></i>
+                    <h4>Bohra Calendar</h4>
+                    <p class="text-secondary">Never miss a date. The home screen automatically displays the accurate Misri Hijri date.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fa-solid fa-chart-pie feature-icon"></i>
+                    <h4>Smart Analytics</h4>
+                    <p class="text-secondary">Track your progress with beautiful weekly graphs and history breakdowns.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fa-solid fa-mobile-screen-button feature-icon"></i>
+                    <h4>Haptic Feel</h4>
+                    <p class="text-secondary">Satisfying vibration feedback on every tap, so you don't have to look at the screen.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>Developed with <span class="text-danger">❤</span> by <strong>Iliyas Abbasali Bohari</strong></p>
+            <p class="small">My Tasbih Pro © 2026. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

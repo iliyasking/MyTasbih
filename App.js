@@ -14,19 +14,13 @@ import {
   Modal,
   Dimensions,
   SafeAreaView,
-  Switch // <--- Added Switch for the toggle
+  Switch 
 } from 'react-native';
 import { LineChart, PieChart } from "react-native-chart-kit";
 import { Ionicons } from '@expo/vector-icons'; 
-import * as FileSystem from 'expo-file-system/legacy'; 
+import * as FileSystem from 'expo-file-system'; 
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// --- ADMOB IMPORTS ---
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
-
-// Use TestIds.BANNER for testing. Replace with your real ID from AdMob later.
-const adUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-7573296194271277/2017801356';
 
 // --- Constants ---
 const { width, height } = Dimensions.get('window');
@@ -139,7 +133,7 @@ export default function App() {
   const [tasbihName, setTasbihName] = useState(""); 
   const [dailyTotals, setDailyTotals] = useState({});
   const [currentTheme, setCurrentTheme] = useState('neon'); 
-  const [isVibrationEnabled, setVibrationEnabled] = useState(true); // <--- NEW STATE
+  const [isVibrationEnabled, setVibrationEnabled] = useState(true); 
   
   const [menuVisible, setMenuVisible] = useState(false);
   const [analysisVisible, setAnalysisVisible] = useState(false);
@@ -159,7 +153,7 @@ export default function App() {
     DAILY: '@tasbih_daily_totals',
     LAST_OPENED: '@tasbih_last_opened',
     THEME: '@tasbih_theme',
-    VIBRATION: '@tasbih_vibration' // <--- NEW KEY
+    VIBRATION: '@tasbih_vibration' 
   };
 
   useEffect(() => {
@@ -182,7 +176,7 @@ export default function App() {
         if (savedName) setTasbihName(savedName);
         if (savedDaily) setDailyTotals(JSON.parse(savedDaily));
         if (savedTheme && THEMES[savedTheme]) setCurrentTheme(savedTheme);
-        if (savedVib != null) setVibrationEnabled(savedVib === 'true'); // <--- LOAD VIBRATION
+        if (savedVib != null) setVibrationEnabled(savedVib === 'true'); 
         
         if (savedLastOpened) {
           const todayKey = (new Date()).toISOString().slice(0,10);
@@ -198,7 +192,7 @@ export default function App() {
   useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history)).catch(() => {}); }, [history]);
   useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.DAILY, JSON.stringify(dailyTotals)).catch(() => {}); }, [dailyTotals]);
   useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.THEME, currentTheme).catch(() => {}); }, [currentTheme]);
-  useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.VIBRATION, String(isVibrationEnabled)).catch(() => {}); }, [isVibrationEnabled]); // <--- SAVE VIBRATION
+  useEffect(() => { AsyncStorage.setItem(STORAGE_KEYS.VIBRATION, String(isVibrationEnabled)).catch(() => {}); }, [isVibrationEnabled]); 
 
   useEffect(() => { 
     AsyncStorage.setItem(STORAGE_KEYS.NAME, tasbihName).catch(() => {}); 
@@ -206,7 +200,6 @@ export default function App() {
     AsyncStorage.setItem(STORAGE_KEYS.LAST_OPENED, todayKey).catch(() => {});
   }, [tasbihName]);
 
-  // --- Helper for safe vibration ---
   const vibrateSafe = (pattern) => {
     if (isVibrationEnabled) {
       Vibration.vibrate(pattern);
@@ -525,7 +518,6 @@ export default function App() {
         </View>
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           
-          {/* --- NEW PREFERENCES SECTION FOR VIBRATION --- */}
           <Text style={[styles.settingHeader, { color: colors.accent }]}>PREFERENCES</Text>
           <View style={[styles.settingRow, { backgroundColor: colors.card }]}>
              <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -571,18 +563,7 @@ export default function App() {
              <Ionicons name="trash-outline" size={20} color={colors.danger} />
           </TouchableOpacity>
 
-          <View style={{ marginTop: 20, marginBottom: 40, alignItems: 'center', width: '100%' }}>
-            {/* Banner Ad placed here at the bottom of Settings */}
-            <BannerAd
-              unitId={adUnitId}
-              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-              requestOptions={{
-                requestNonPersonalizedAdsOnly: true,
-              }}
-            />
-          </View>
-
-          <View style={{ alignItems: 'center' }}>
+          <View style={{ alignItems: 'center', marginTop: 40, marginBottom: 40 }}>
             <Text style={{ color: currentTheme === 'light' ? '#666' : '#666' }}>My Tasbih Pro v1.8</Text>
             <Text style={{ color: '#888', fontSize: 12 }}>Design by Iliyas Abbasali Bohari</Text>
           </View>

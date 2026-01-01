@@ -21,7 +21,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.iliyas_bohari.snack6de32a47009d4c568bd20e897e3974e9"
+      "package": "com.iliyas.mytasbihpro",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,15 +32,6 @@
       "eas": {
         "projectId": "6dfb347e-37c9-4abe-b178-0523d1d9e6d1"
       }
-    },
-    "plugins": [
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-7573296194271277~5709634356", 
-          "iosAppId": "ca-app-pub-7573296194271277~5709634356"
-        }
-      ]
-    ]
+    }
   }
 }
